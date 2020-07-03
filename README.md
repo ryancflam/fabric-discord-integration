@@ -1,6 +1,6 @@
 # fabric-discord-integration
 
-**fabric-discord-integration** is a [Fabric](https://fabricmc.net/) mod for dedicated Minecraft servers allowing bidirectional Discord integration.
+**fabric-discord-integration** is a [Fabric](https://fabricmc.net/) mod for dedicated Minecraft servers allowing bidirectional [Discord](https://discord.com) integration.
 The mod is still fairly early in development, so please understand there may be occasional bugs.
 
 ## Features:
