@@ -1,4 +1,4 @@
-# fabric-discord-integration
+# fabric-discord-integration [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/hkva/fabric-discord-integration/Java%20CI%20with%20Gradle?style=flat-square)](https://github.com/hkva/fabric-discord-integration/actions?query=workflow%3A%22Java+CI+with+Gradle%22)
 
 **fabric-discord-integration** is a [Fabric](https://fabricmc.net/) mod for dedicated Minecraft servers allowing bidirectional [Discord](https://discord.com) integration.
 The mod is still fairly early in development, so please understand there may be occasional bugs.
