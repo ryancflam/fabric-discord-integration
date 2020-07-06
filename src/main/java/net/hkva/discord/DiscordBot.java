@@ -12,6 +12,9 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
+
+import com.vdurmont.emoji.EmojiParser;
+
 import java.util.Optional;
 
 /**
@@ -46,13 +49,12 @@ public class DiscordBot extends ListenerAdapter {
 
         // TODO: Blacklist users
         // TODO: Attachment support
-        // TODO: Remove emoji
         
         if (!config.relayChannelIDs.contains((Long)message.getChannel().getIdLong())) {
         	return;
         }
 
-        String messageContent = String.format("[%s] %s", formatUsername(author), message.getContentDisplay());
+        String messageContent = formatIncoming(message);
 
         synchronized (DiscordIntegrationMod.messageBufferIn) {
             DiscordIntegrationMod.messageBufferIn.add(messageContent);
@@ -100,7 +102,7 @@ public class DiscordBot extends ListenerAdapter {
                 DiscordIntegrationMod.LOGGER.warn("Relay channel " + channelID + " is invalid");
                 continue;
             }
-            channel.sendMessage(sanitizeOutgoing(message)).queue();
+            channel.sendMessage(formatOutgoing(message)).queue();
         }
     }
 
@@ -110,15 +112,21 @@ public class DiscordBot extends ListenerAdapter {
     public static String formatUsername(User user) {
         return String.format("%s#%s", user.getName(), user.getDiscriminator());
     }
+    
+    /**
+     * Format a message going from Discord to Minecraft
+     */
+    public static String formatIncoming(Message message) {
+    	final String contentNoEmoji = EmojiParser.parseToAliases(message.getContentDisplay());
+    	return String.format("[%s] %s", formatUsername(message.getAuthor()), contentNoEmoji);
+    }
 
     /**
-     * Sanitize an outgoing message
+     * Format a message going from Minecraft to Discord
      */
-    public static String sanitizeOutgoing(String message) {
+    public static String formatOutgoing(String message) {
         // "@" -> "@ "
-        message = message.replace("@", "@ ");
-
-        return message;
+        return message.replace("@", "@ ");
     }
 
     /**
