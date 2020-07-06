@@ -47,6 +47,10 @@ public class DiscordBot extends ListenerAdapter {
         // TODO: Blacklist users
         // TODO: Attachment support
         // TODO: Remove emoji
+        
+        if (!config.relayChannelIDs.contains((Long)message.getChannel().getIdLong())) {
+        	return;
+        }
 
         String messageContent = String.format("[%s] %s", formatUsername(author), message.getContentDisplay());
 
