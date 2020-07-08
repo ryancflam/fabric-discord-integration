@@ -138,16 +138,16 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			return;
 		}
 
-		if (!config.relayChannelIDs.contains((Long)message.getChannel().getIdLong())) {
-			return;
-		}
-
 		final String messageContent = message.getContentDisplay();
 		if (messageContent.startsWith(config.commandPrefix) && message.getTextChannel().canTalk()) {
 			final String messageNoPrefix = messageContent.substring(config.commandPrefix.length());
 			try {
 				commands.getDispatcher().execute(messageNoPrefix, message);
 			} catch (CommandSyntaxException ignored) {}
+			return;
+		}
+
+		if (!config.relayChannelIDs.contains((Long)message.getChannel().getIdLong())) {
 			return;
 		}
 
