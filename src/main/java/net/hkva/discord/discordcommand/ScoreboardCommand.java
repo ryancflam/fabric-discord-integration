@@ -42,8 +42,7 @@ public class ScoreboardCommand {
     public static int displayScoreboard(CommandContext<Message> context) {
         final String name = StringArgumentType.getString(context, "name");
         DiscordIntegrationMod.withServer(s -> {
-            final ScoreboardObjective o = s.getScoreboard().getObjective(name);
-            if (o == null) {
+            if (!s.getScoreboard().containsObjective(name)) {
                 final EmbedBuilder e = new EmbedBuilder();
                 e.setColor(Color.RED);
                 e.setTitle("Error");
@@ -52,7 +51,9 @@ public class ScoreboardCommand {
                 return;
             }
 
+            final ScoreboardObjective o = s.getScoreboard().getObjective(name);
             final EmbedBuilder e = new EmbedBuilder();
+
             e.setColor(Color.GREEN);
             e.setTitle(o.getDisplayName().getString());
 

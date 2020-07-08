@@ -37,7 +37,7 @@ public class PlayersCommand {
                 }
             }
 
-            if (playersInList == MAX_LIST && playersInList != s.getCurrentPlayerCount()) {
+            if (playersInList != s.getCurrentPlayerCount()) {
                 e.appendDescription(String.format("...and %d more", s.getCurrentPlayerCount() - playersInList));
             }
 
