@@ -104,6 +104,11 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			return;
 		}
 
+		// Ignore pins, joins, boosts, etc
+		if (message.getType() != net.dv8tion.jda.api.entities.MessageType.DEFAULT) {
+			return;
+		}
+
 		final User author = message.getAuthor();
 
 		if (author.isBot()) {
