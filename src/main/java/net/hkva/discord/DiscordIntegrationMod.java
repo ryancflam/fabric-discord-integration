@@ -15,13 +15,14 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
+import net.minecraft.text.*;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.security.auth.login.LoginException;
+import java.time.format.TextStyle;
 import java.util.*;
 
 public class DiscordIntegrationMod implements DedicatedServerModInitializer {
@@ -119,10 +120,8 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			return;
 		}
 
-		final String gameChatMessage = formatIncoming(message);
-
 		server.get().getPlayerManager().broadcastChatMessage(
-				new LiteralText(gameChatMessage),
+				formatIncoming(message),
 				MessageType.CHAT,
 				Util.NIL_UUID
 		);
@@ -258,9 +257,23 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	/**
 	 * Format an incoming message
 	 */
-	public static String formatIncoming(Message message) {
-		String gameMessage = EmojiParser.parseToAliases(message.getContentDisplay());
-		return String.format("[%s] %s", formatUsername(message.getAuthor()), gameMessage);
+	public static Text formatIncoming(Message message) {
+		LiteralText text = new LiteralText(String.format("[%s] ", formatUsername(message.getAuthor())));
+
+		// Add attachments as clickable text
+		for (Message.Attachment a : message.getAttachments()) {
+			final MutableText attachmentText = new LiteralText(a.getFileName());
+			attachmentText.setStyle(attachmentText.getStyle()
+					.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, a.getUrl()))
+					.withFormatting(Formatting.GREEN)
+					.withFormatting(Formatting.UNDERLINE)
+			);
+			text.append(attachmentText).append(" ");
+		}
+
+		text.append(EmojiParser.parseToAliases(message.getContentDisplay()));
+
+		return text;
 	}
 
 	/**
