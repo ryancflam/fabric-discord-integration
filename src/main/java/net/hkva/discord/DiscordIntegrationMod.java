@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.server.ServerStartCallback;
 import net.fabricmc.fabric.api.event.server.ServerStopCallback;
+import net.fabricmc.fabric.api.event.server.ServerTickCallback;
 import net.hkva.discord.callback.DiscordMessageCallback;
 import net.hkva.discord.callback.ServerChatCallback;
 import net.minecraft.network.MessageType;
@@ -42,6 +43,9 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 
 	private static DiscordCommandManager commands = new DiscordCommandManager();
 
+	private static int lastPlayerCount = -1;
+	private static final int PLAYER_COUNT_UPDATE_INTERVAL = 20 * 5;
+
 	/**
 	 * Mod entry point
 	 */
@@ -58,6 +62,7 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 
 		ServerStartCallback.EVENT.register(DiscordIntegrationMod::onServerStart);
 		ServerStopCallback.EVENT.register(DiscordIntegrationMod::onServerStop);
+		ServerTickCallback.EVENT.register(DiscordIntegrationMod::onServerTick);
 		ServerChatCallback.EVENT.register(DiscordIntegrationMod::onServerChat);
 		DiscordMessageCallback.EVENT.register(DiscordIntegrationMod::onDiscordChat);
 	}
@@ -72,6 +77,23 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	private static void onServerStop(MinecraftServer server) {
 		DiscordIntegrationMod.server = Optional.empty();
 		bot.disconnect();
+	}
+
+	/**
+	 * Server tick callback
+	 */
+	private static void onServerTick(MinecraftServer server) {
+		// TODO: Replace with player join/leave listeners
+		if (server.getTicks() % PLAYER_COUNT_UPDATE_INTERVAL == 0) {
+			final int playerCount = server.getCurrentPlayerCount();
+			bot.withConnection(c -> {
+				if (lastPlayerCount != playerCount) {
+					lastPlayerCount = playerCount;
+					c.getPresence().setActivity(Activity.playing(String.format("%d/%d players",
+							playerCount, server.getMaxPlayerCount())));
+				}
+			});
+		}
 	}
 
 	/**
