@@ -8,7 +8,9 @@ The mod is still fairly early in development, so please understand there may be 
 ## Features:
 * Minecraft -> Discord chat forwarding (including join messages, deaths, etc.)
 * Discord -> Minecraft chat forwarding
-* Display player count
+* Embed Discord attachments as clickable links
+* View online players in Discord
+* Scoreboard integration
 
 ## Quick start:
 1. Install [Fabric](https://fabricmc.net/use/?page=server) and the [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api) on your Minecraft server
@@ -17,6 +19,12 @@ The mod is still fairly early in development, so please understand there may be 
 4. Edit `config/discord.json` in a text editor ([example](https://gist.github.com/hkva/50f368241f65a877d26a3546f979a7f7))
 5. Run `/discord loadConfig` followed by `/discord reconnect`
 6. Check that the bot connected with `/discord status`
+
+## Discord commands
+`mc!` is the default prefix, but this can be changed in `config/discord.json`
+* `mc!players` View a list of online players
+* `mc!scoreboard list` List available scoreboards
+* `mc!scoreboard <name>` View a scoreboard
 
 ## Minecraft commands
 These commands are only available to server operators
