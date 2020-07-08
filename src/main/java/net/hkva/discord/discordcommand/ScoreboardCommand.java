@@ -12,6 +12,10 @@ import net.minecraft.scoreboard.ScoreboardPlayerScore;
 import net.minecraft.scoreboard.ServerScoreboard;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.ListIterator;
 
 public class ScoreboardCommand {
 
@@ -59,7 +63,11 @@ public class ScoreboardCommand {
             e.setColor(Color.GREEN);
             e.setTitle(o.getDisplayName().getString());
 
-            for (ScoreboardPlayerScore score : s.getScoreboard().getAllPlayerScores(o)) {
+            ArrayList<ScoreboardPlayerScore> scores = new ArrayList<>(s.getScoreboard().getAllPlayerScores(o));
+            ListIterator<ScoreboardPlayerScore> itr = scores.listIterator(scores.size());
+
+            while (itr.hasPrevious()) {
+                final ScoreboardPlayerScore score = itr.previous();
                 e.appendDescription(String.format("%s: %d\n", score.getPlayerName(), score.getScore()));
             }
 
