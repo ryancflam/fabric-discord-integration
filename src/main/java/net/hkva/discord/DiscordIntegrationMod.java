@@ -3,9 +3,7 @@ package net.hkva.discord;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.vdurmont.emoji.EmojiParser;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.server.ServerStartCallback;
 import net.fabricmc.fabric.api.event.server.ServerStopCallback;
@@ -86,6 +84,8 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 		System.out.println(text);
 		System.out.println(bot.isConnected());
 
+		String discordMessage = formatOutgoing(text.getString());
+
 		bot.withConnection(c -> {
 			for (Long channelID : config.relayChannelIDs) {
 				final TextChannel relayChannel = c.getTextChannelById(channelID);
@@ -93,7 +93,8 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 					LOGGER.warn("Relay channel " + channelID + " is invalid");
 					continue;
 				}
-				relayChannel.sendMessage(formatOutgoing(text.getString())).queue();
+
+				relayChannel.sendMessage(formatGuildEmoji(discordMessage, relayChannel.getGuild())).queue();
 			}
 		});
 	}
@@ -265,5 +266,14 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	 */
 	public static String formatUsername(User user) {
 		return String.format("%s#%s", user.getName(), user.getDiscriminator());
+	}
+
+	public static String formatGuildEmoji(String message, Guild guild) {
+		for (Emote e : guild.getEmotes()) {
+			final String emojiDisplay = String.format(":%s:", e.getName());
+			final String emojiFormatted = String.format("<%s%s>", emojiDisplay, e.getId());
+			message = message.replaceAll(String.format(":%s:", e.getName()), emojiFormatted);
+		}
+		return message;
 	}
 }
