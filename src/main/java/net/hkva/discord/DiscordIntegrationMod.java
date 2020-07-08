@@ -2,14 +2,21 @@ package net.hkva.discord;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
+import com.vdurmont.emoji.EmojiParser;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
 import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.fabric.api.event.server.ServerStartCallback;
 import net.fabricmc.fabric.api.event.server.ServerStopCallback;
 import net.fabricmc.fabric.api.event.server.ServerTickCallback;
+import net.hkva.discord.callback.DiscordMessageCallback;
 import net.hkva.discord.callback.ServerChatCallback;
 import net.minecraft.network.MessageType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
@@ -31,9 +38,10 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 
 	private static final ConfigFile configFile = new ConfigFile("discord.json");
 	private static Config config = ConfigFile.DEFAULT_CONFIG;
-	private static Optional<DiscordBot> bot = Optional.empty();
-	private static int lastPlayerCount = -1;
-	private static final int PLAYER_COUNT_UPDATE_INTERVAL = 20 * 5;
+
+	private static DiscordBot bot = new DiscordBot();
+
+	private static Optional<MinecraftServer> server = Optional.empty();
 
 	/**
 	 * Mod entry point
@@ -49,54 +57,72 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 
 		connectBot();
 
+		ServerStartCallback.EVENT.register(DiscordIntegrationMod::onServerStart);
 		ServerStopCallback.EVENT.register(DiscordIntegrationMod::onServerStop);
-		ServerTickCallback.EVENT.register(DiscordIntegrationMod::onServerTick);
 		ServerChatCallback.EVENT.register(DiscordIntegrationMod::onServerChat);
+		DiscordMessageCallback.EVENT.register(DiscordIntegrationMod::onDiscordChat);
+	}
+
+	private static void onServerStart(MinecraftServer server) {
+		DiscordIntegrationMod.server = Optional.of(server);
 	}
 
 	/**
 	 * Server stop callback
 	 */
-	public static void onServerStop(MinecraftServer server) {
-		if (bot.isPresent()) {
-			disconnectBot();
-		}
+	private static void onServerStop(MinecraftServer server) {
+		DiscordIntegrationMod.server = Optional.empty();
+		bot.disconnect();
 	}
 
 	/**
-	 * Server tick callback
+	 * On Minecraft chat message sent
 	 */
-	public static void onServerTick(MinecraftServer server) {
-		if (!bot.isPresent()) {
+	private static void onServerChat(MinecraftServer server, Text text, MessageType type, UUID senderUUID) {
+		if (type == MessageType.CHAT && senderUUID == Util.NIL_UUID) {
 			return;
 		}
 
-		synchronized (messageBufferIn) {
-			for (String message : messageBufferIn) {
-				server.getPlayerManager().broadcastChatMessage(
-						new LiteralText(message), MessageType.CHAT, Util.NIL_UUID);
-			}
-			messageBufferIn.clear();
-		}
+		System.out.println(text);
+		System.out.println(bot.isConnected());
 
-		// TODO: Replace with player join/leave listeners
-		if (server.getTicks() % PLAYER_COUNT_UPDATE_INTERVAL == 0) {
-			final int playerCount = server.getCurrentPlayerCount();
-			if (playerCount != lastPlayerCount) {
-				lastPlayerCount = playerCount;
-				bot.get().updatePlayerCount(playerCount, server.getMaxPlayerCount());
+		bot.withConnection(c -> {
+			for (Long channelID : config.relayChannelIDs) {
+				final TextChannel relayChannel = c.getTextChannelById(channelID);
+				if (relayChannel == null || !relayChannel.canTalk()) {
+					LOGGER.warn("Relay channel " + channelID + " is invalid");
+					continue;
+				}
+				relayChannel.sendMessage(formatOutgoing(text.getString())).queue();
 			}
-		}
+		});
 	}
 
 	/**
-	 * Chat message callback
+	 * On Discord chat message sent
 	 */
-	public static void onServerChat(MinecraftServer server, Text message, MessageType type, UUID sender) {
-		// LOGGER.info(String.format("onServerChat(message = ..., type = %s, sender = %s", type, sender));
-		if (bot.isPresent() && !(type == MessageType.CHAT && sender == Util.NIL_UUID)) {
-			bot.get().relayOutgoing(message.getString());
+	private static void onDiscordChat(Message message) {
+		if (!server.isPresent()) {
+			return;
 		}
+
+		final User author = message.getAuthor();
+
+		if (author.isBot()) {
+			return;
+		}
+
+		if (!config.relayChannelIDs.contains((Long)message.getChannel().getIdLong())) {
+			return;
+		}
+
+		final String gameChatMessage = formatIncoming(message);
+
+		server.get().getPlayerManager().broadcastChatMessage(
+				new LiteralText(gameChatMessage),
+				MessageType.CHAT,
+				Util.NIL_UUID
+		);
 	}
 
 	/**
@@ -135,10 +161,13 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	 */
 	public static int statusCommand(CommandContext<ServerCommandSource> context) {
 		final ServerCommandSource source = context.getSource();
-		if (!bot.isPresent() || !bot.get().isConnected()) {
+		if (!bot.isConnected()) {
 			source.sendFeedback(new LiteralText("Discord: Not connected"), false);
 		} else {
-			source.sendFeedback(new LiteralText("Discord: Connected"), false);
+			bot.withConnection(c -> {
+				source.sendFeedback(new LiteralText("Discord: Connected"), false);
+				source.sendFeedback(new LiteralText("Status: " + c.getStatus()), false);
+			});
 		}
 
 		return 0;
@@ -149,10 +178,8 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	 */
 	public static int reconnectCommand(CommandContext<ServerCommandSource> context) {
 		final ServerCommandSource source = context.getSource();
-		if (bot.isPresent()) {
-			disconnectBot();
-			source.sendFeedback(new LiteralText("Discord: Disconnected"), true);
-		}
+		bot.disconnect();
+		source.sendFeedback(new LiteralText("Discord: Disconnected"), true);
 		if (!connectBot()) {
 			source.sendFeedback(new LiteralText("Discord: Could not log in"), true);
 		} else {
@@ -182,10 +209,7 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			LOGGER.info("Read config " + configFile);
 			config = readResult.get();
 		}
-		// Notify bot of config change
-		if (bot.isPresent()) {
-			bot.get().updateConfig(config);
-		}
+
 		return result;
 	}
 
@@ -193,20 +217,18 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	 * Connect to discord
 	 */
 	public static boolean connectBot() {
-		if (bot.isPresent()) {
-			throw new IllegalStateException("Trying to create new bot when bot already exists");
+		if (bot.isConnected()) {
+			throw new IllegalStateException("Bot is already connected");
 		}
 
-		bot = Optional.of(new DiscordBot(config));
 		try {
-			bot.get().login();
-		} catch (LoginException | InterruptedException e) {
-			e.printStackTrace();
-			LOGGER.warn("Could not log in with the supplied token");
-			bot = Optional.empty();
+			bot.connect(config.token);
+		} catch (Exception e) {
+			LOGGER.warn("Discord: Could not log in with the supplied token");
 			return false;
 		}
-		LOGGER.info("Logged in to Discord");
+
+		LOGGER.info("Discord: Logged in");
 		return true;
 	}
 
@@ -214,13 +236,34 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	 * Disconnect from discord
 	 */
 	public static void disconnectBot() {
-		if (!bot.isPresent()) {
-			throw new IllegalStateException("Trying to destroy bot when no bot exists");
+		if (!bot.isConnected()) {
+			throw new IllegalStateException("Bot is already disconnected");
 		}
 
-		bot.get().logout();
+		bot.disconnect();
 		LOGGER.info("Logged out of Discord");
+	}
 
-		bot = Optional.empty();
+	/**
+	 * Format an outgoing message
+	 */
+	public static String formatOutgoing(String message) {
+		// "@" -> "@ "
+		return message.replace("@", "@ ");
+	}
+
+	/**
+	 * Format an incoming message
+	 */
+	public static String formatIncoming(Message message) {
+		String gameMessage = EmojiParser.parseToAliases(message.getContentDisplay());
+		return String.format("[%s] %s", formatUsername(message.getAuthor()), gameMessage);
+	}
+
+	/**
+	 * Format a user's name
+	 */
+	public static String formatUsername(User user) {
+		return String.format("%s#%s", user.getName(), user.getDiscriminator());
 	}
 }
