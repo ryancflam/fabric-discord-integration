@@ -2,28 +2,26 @@ package net.hkva.discord;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.vdurmont.emoji.EmojiParser;
 import net.dv8tion.jda.api.entities.*;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.server.ServerStartCallback;
 import net.fabricmc.fabric.api.event.server.ServerStopCallback;
-import net.fabricmc.fabric.api.event.server.ServerTickCallback;
 import net.hkva.discord.callback.DiscordMessageCallback;
 import net.hkva.discord.callback.ServerChatCallback;
 import net.minecraft.network.MessageType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.*;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.security.auth.login.LoginException;
-import java.time.format.TextStyle;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 
@@ -41,6 +39,8 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 	private static DiscordBot bot = new DiscordBot();
 
 	private static Optional<MinecraftServer> server = Optional.empty();
+
+	private static DiscordCommandManager commands = new DiscordCommandManager();
 
 	/**
 	 * Mod entry point
@@ -117,6 +117,15 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 		}
 
 		if (!config.relayChannelIDs.contains((Long)message.getChannel().getIdLong())) {
+			return;
+		}
+
+		final String messageContent = message.getContentDisplay();
+		if (messageContent.startsWith(config.commandPrefix) && message.getTextChannel().canTalk()) {
+			final String messageNoPrefix = messageContent.substring(config.commandPrefix.length());
+			try {
+				commands.getDispatcher().execute(messageNoPrefix, message);
+			} catch (CommandSyntaxException ignored) {}
 			return;
 		}
 
@@ -244,6 +253,15 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 
 		bot.disconnect();
 		LOGGER.info("Logged out of Discord");
+	}
+
+	/**
+	 * Access the server
+	 */
+	public static void withServer(Consumer<MinecraftServer> action) {
+		if (server.isPresent()) {
+			action.accept(server.get());
+		}
 	}
 
 	/**
