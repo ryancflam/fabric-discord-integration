@@ -287,7 +287,7 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 		for (Emote e : guild.getEmotes()) {
 			final String emojiDisplay = String.format(":%s:", e.getName());
 			final String emojiFormatted = String.format("<%s%s>", emojiDisplay, e.getId());
-			message = message.replaceAll(String.format(":%s:", e.getName()), emojiFormatted);
+			message = message.replaceAll(emojiDisplay, emojiFormatted);
 		}
 		return message;
 	}
