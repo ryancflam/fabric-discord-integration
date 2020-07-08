@@ -81,9 +81,6 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			return;
 		}
 
-		System.out.println(text);
-		System.out.println(bot.isConnected());
-
 		String discordMessage = formatOutgoing(text.getString());
 
 		bot.withConnection(c -> {
