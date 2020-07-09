@@ -68,7 +68,9 @@ public class ScoreboardCommand {
 
             while (itr.hasPrevious()) {
                 final ScoreboardPlayerScore score = itr.previous();
-                e.appendDescription(String.format("%s: %d\n", score.getPlayerName(), score.getScore()));
+                e.appendDescription(String.format("%s: %d\n",
+                        DiscordIntegrationMod.sanitizeDiscordFormatting(score.getPlayerName()),
+                        score.getScore()));
             }
 
             context.getSource().getTextChannel().sendMessage(e.build()).queue();

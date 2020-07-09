@@ -325,6 +325,14 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 		return String.format("%s#%s", user.getName(), user.getDiscriminator());
 	}
 
+	/**
+	 * Remove formatting characters like "_"
+	 */
+	public static String sanitizeDiscordFormatting(String str) {
+		// TODO: Anything other than "_"
+		return str.replaceAll("_", "\\_");
+	}
+
 	public static String formatGuildEmoji(String message, Guild guild) {
 		for (Emote e : guild.getEmotes()) {
 			final String emojiDisplay = String.format(":%s:", e.getName());

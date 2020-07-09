@@ -31,7 +31,8 @@ public class PlayersCommand {
 
             int playersInList = 0;
             for (ServerPlayerEntity player : players.getPlayerList()) {
-                e.appendDescription(player.getName().getString() + "\n");
+                e.appendDescription(DiscordIntegrationMod.sanitizeDiscordFormatting(player.getName().getString())
+                        + "\n");
                 if (++playersInList == MAX_LIST) {
                     break;
                 }
