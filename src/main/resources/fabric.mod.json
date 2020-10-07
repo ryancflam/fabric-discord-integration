@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "discord",
+  "version": "${version}",
+
+  "name": "Discord integration",
+  "description": "Bidirectional Discord <-> dedicated Minecraft server integration",
+  "authors": [
+    "hkva"
+  ],
+  "contact": {
+    "homepage": "https://github.com/hkva/fabric-discord-integration",
+    "sources": "https://github.com/hkva/fabric-discord-integration"
+  },
+
+  "license": "MIT",
+
+  "environment": "*",
+  "entrypoints": {
+    "server": [
+      "net.hkva.discord.DiscordIntegrationMod"
+    ]
+  },
+  "mixins": [
+    "discord.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.7.4",
+    "fabric": "*",
+    "minecraft": "1.16.x"
+  },
+  "suggests": {
+    "flamingo": "*"
+  }
+}
