@@ -307,7 +307,7 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 					.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, a.getUrl()))
 					.withFormatting(Formatting.GREEN)
 					.withFormatting(Formatting.UNDERLINE)
-					.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+					.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
 							new LiteralText("Click to open in your web browser")))
 			);
 			text.append(attachmentText).append(" ");
