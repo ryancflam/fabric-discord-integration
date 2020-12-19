@@ -104,7 +104,7 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			return;
 		}
 
-		String discordMessage = formatOutgoing(text.getString());
+		String discordMessage = text.getString();
 
 		bot.withConnection(c -> {
 			for (Long channelID : config.relayChannelIDs) {
@@ -132,9 +132,7 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 			return;
 		}
 
-		final User author = message.getAuthor();
-
-		if (author.isBot()) {
+		if (message.getAuthor() == message.getJDA().getSelfUser()) {
 			return;
 		}
 
@@ -286,13 +284,13 @@ public class DiscordIntegrationMod implements DedicatedServerModInitializer {
 		}
 	}
 
-	/**
-	 * Format an outgoing message
-	 */
-	public static String formatOutgoing(String message) {
-		// "@" -> "@ "
-		return message.replace("@", "@ ");
-	}
+//	/**
+//	 * Format an outgoing message
+//	 */
+//	public static String formatOutgoing(String message) {
+//		// "@" -> "@ "
+//		return message.replace("@", "@ ");
+//	}
 
 	/**
 	 * Format an incoming message
